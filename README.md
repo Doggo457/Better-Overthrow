@@ -70,4 +70,4 @@ Most behaviour is tunable from the **lobby mission parameters** before the game 
 
 ## Credits & license
 
-Built on [Overthrow Community Edition](https://github.com/rekterakathom/Overthrow). Same license as upstream Overthrow.
+Better Overthrow is a fork of [Overthrow: Community Edition](https://github.com/rekterakathom/Overthrow) by **ThomasAngel**, which continues the original **Overthrow** by **ARMAzac**. The original systems and the overwhelming majority of the codebase are their work — this mod only extends them. Released under the same license (GNU GPL v2) as upstream Overthrow.
