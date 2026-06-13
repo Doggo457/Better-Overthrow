@@ -18,9 +18,19 @@ Recommended launch order:
 @CBA_A3 ; @ace ; @Better Overthrow
 ```
 
-### Optional
+## Recommended mods
 
-- **LAMBS Danger.fsm** and **VCOM AI** are detected automatically and used to make enemy AI move and fight more convincingly. Neither is required — the mod runs fine without them.
+None of these are required, but each unlocks or improves a Better Overthrow feature. (CBA and ACE are listed under Requirements above, not here.)
+
+- **[Zeus Enhanced (ZEN)](https://steamcommunity.com/sharedfiles/filedetails/?id=1779063631)** — Better Overthrow's high-command tools for Generals are built on Zeus Enhanced. Without it the General curator and the custom command modules (spawn business/factory, set garrison, trigger events, toggle General, etc.) won't be available. Strongly recommended if you want the high-command layer.
+- **[LAMBS Danger.fsm](https://steamcommunity.com/sharedfiles/filedetails/?id=1858075458)** — detected automatically. The enemy commander (HAL) and its garrisons use it so AI actually maneuver, take cover, flank, and suppress instead of standing in the open. Makes the occupying force feel like a thinking opponent.
+- **[Vcom AI](https://steamcommunity.com/sharedfiles/filedetails/?id=721359761)** — also detected automatically and tuned by Better Overthrow. Improves enemy squad tactics and aggression. It and LAMBS complement each other; the mod configures both so they don't fight over control.
+- **RHS factions** — these unlock the in-lobby enemy-faction picker, so the occupying army can be a fully-modelled real-world force instead of vanilla NATO. Pick any combination:
+  - **[RHS: United States Forces (RHSUSAF)](https://steamcommunity.com/sharedfiles/filedetails/?id=843577117)** — US Army and USMC occupiers.
+  - **[RHS: Armed Forces of the Russian Federation (RHSAFRF)](https://steamcommunity.com/sharedfiles/filedetails/?id=843425103)** — Russian occupiers.
+  - **[RHS: GREF (RHSGREF)](https://steamcommunity.com/sharedfiles/filedetails/?id=843593391)** — irregular / minor-nation forces (incl. the HIDF faction option).
+  - **[RHS: Serbian Armed Forces (RHSSAF)](https://steamcommunity.com/sharedfiles/filedetails/?id=843632231)** — Serbian occupiers.
+- **[Dynamic Camo System](https://steamcommunity.com/sharedfiles/filedetails/?id=2800081814)** — pairs naturally with Overthrow's wanted/stealth gameplay: your concealment depends on terrain, movement, and gear, rewarding the patient insurgent approach the campaign is built around.
 
 ## Supported maps
 
