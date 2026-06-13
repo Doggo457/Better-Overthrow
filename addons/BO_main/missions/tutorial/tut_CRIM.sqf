@@ -1,0 +1,111 @@
+// THIS MISSION IS NOT ACTUALLY USED
+
+//Let's find some bandits to shoot
+
+private _done = player getVariable ["OT_tutesDone", []];
+_done pushBackUnique "CRIM";
+player setVariable ["OT_tutesDone", _done, true];
+
+private _targets = [];
+private _destination = [];
+private _thistown = (getPosATL player) call OT_fnc_nearestTown;
+
+//Is there some already spawned within spawn distance?
+{
+    if (side _x isEqualTo opfor) then {
+        _targets pushBack _x;
+    };
+} forEach (player nearEntities ["CAManBase", OT_spawnDistance]);
+
+//No? well where is a town with an active gang
+if (_targets isEqualTo []) exitWith {
+    private _towns = [OT_townData, [], { (_x select 0) distance player }, "ASCEND"] call BIS_fnc_sortBy;
+    private _town = "";
+    private _done = false;
+    {
+        _x params ["_pos", "_t"];
+        private _gangshere = OT_civilians getVariable [format ["gangs%1", _t], []];
+        if (_t isNotEqualTo _thistown) then {
+            if (_gangshere isNotEqualTo []) then {
+                private _gang = OT_civilians getVariable [format ["gang%1", _gangshere select 0], []];
+                if (_gang isNotEqualTo []) then {
+                    if ((_gang select 0) isNotEqualTo []) then {
+                        _destination = _pos;
+                        _town = _t;
+                        _done = true;
+                    };
+                };
+            };
+        };
+        if (_done) exitWith {};
+    } forEach (_towns);
+
+    if (_destination isNotEqualTo []) then {
+        //give waypoint
+        [player, _destination, _town] call OT_fnc_givePlayerWaypoint;
+
+        format [
+            "There doesnt seem to be any gangs nearby. Head to %1, you should be able to find some there. It's marked on your map",
+            _town
+        ] call OT_fnc_notifyMinor;
+
+        [
+            {
+                player distance _this < 200;
+            },
+            {
+                //If the player fast travelled, give time to spawn
+                [
+                    {
+                        //loop and hope we find a target
+                        [] call (OT_tutorialMissions select 1);
+                    },
+                    0,
+                    10
+                ] call CBA_fnc_waitAndExecute;
+            },
+            _destination
+        ] call CBA_fnc_waitUntilAndExecute;
+    } else {
+        //I guess resistance controls the entire map, gg
+    };
+};
+
+"There is a gang nearby, locals are sick and tired of them so there might be a few dollars in it if you made them go away." call OT_fnc_notifyMinor;
+
+//pick the first group and reveal
+private _sorted = [_targets, [], { _x distance player }, "ASCEND"] call BIS_fnc_sortBy;
+private _group = group (_sorted select 0);
+player reveal [leader _group, 4];
+
+//give waypoint
+private _wp = [player, getPos leader _group, "Gang"] call OT_fnc_givePlayerWaypoint;
+private _total = count units _group;
+
+private _loopCode = {
+    params ["_loopCode", "_wp", "_reached", "_group", "_total", "_done"];
+    if (!isNil "_wp") then {
+        //update waypoint
+        OT_missionMarker = getPosATL leader _group;
+        _wp setWaypointPosition [OT_missionMarker, 0];
+    };
+    if (!_reached) then {
+        _reached = player distance (leader _group) < 30;
+    } else {
+        private _num = _total - ({ alive _x } count units _group);
+        _done = _num >= _total;
+        hintSilent format ["Kills: %1/%2", _num, _total];
+    };
+
+    if !(_done) then {
+        [
+            _loopCode,
+            [_loopCode, _wp, _reached, _group, _total, false],
+            0.5
+        ] call CBA_fnc_waitAndExecute;
+    } else {
+        call OT_fnc_clearPlayerWaypoint;
+    };
+};
+
+[_loopCode, _wp, false, _group, _total, false] call _loopCode;

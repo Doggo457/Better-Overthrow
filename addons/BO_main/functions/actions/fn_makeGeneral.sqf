@@ -1,0 +1,54 @@
+// BO: only the host (local-host scenario) or a logged-in admin
+// (dedicated, BIS_fnc_admin == 2) can promote Generals. Other Generals
+// can't bootstrap more Generals — the role chain stops at admin.
+if (!(isServer && hasInterface) && !((call BIS_fnc_admin) isEqualTo 2)) exitWith {
+    "Only the host or a logged-in admin can promote Generals" call OT_fnc_notifyBig;
+};
+
+private _idx = lbCurSel 1500;
+private _uid = lbData [1500, _idx];
+if (_uid isEqualTo "") exitWith {};
+
+private _generals = server getVariable ["generals", []];
+// pushBackUnique: promoting an already-General player was appending a
+// duplicate UID every click.
+_generals pushBackUnique _uid;
+server setVariable ["generals", _generals, true];
+[AUDIT_ADMIN, format ["Promoted %1 to General", lbText [1500, _idx]], [_uid]] call BO_fnc_audit;
+
+disableSerialization;
+
+private _amgen = (getPlayerUID player) in (server getVariable ["generals", []]);
+
+private _isonline = false;
+private _on = "Offline";
+private _player = objNull;
+{
+    if (getPlayerUID _x isEqualTo _uid) exitWith {
+        _isonline = true;
+        _on = "Online";
+        _player = _x;
+    };
+} forEach (allPlayers);
+
+private _money = 0;
+if (_isonline) then {
+    _money = _player getVariable ["money", 0];
+} else {
+    _money = [_uid, "money"] call OT_fnc_getOfflinePlayerAttribute;
+};
+
+if (_uid in (server getVariable ["generals", []])) then {
+    _on = _on + " (General)";
+};
+
+private _text = format ["<t size='0.8'>%1</t><br/>", lbText [1500, _idx]];
+_text = _text + format ["<t size='0.65'>%1</t><br/>", _on];
+
+if (_amgen) then {
+    _text = _text + format ["<t size='0.65'>$%1</t>", [_money, 1, 0, true] call CBA_fnc_formatNumber];
+};
+
+private _textctrl = (findDisplay 8000) displayCtrl 1102;
+_textctrl ctrlSetStructuredText parseText _text;
+ctrlEnable [1600, false];

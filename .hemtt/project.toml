@@ -1,0 +1,41 @@
+name = "Better Overthrow"
+prefix = "overthrow_main"
+mainprefix = ""
+author = "Better Overthrow contributors"
+
+[version]
+major = 0
+minor = 1
+patch = 0
+build = 0
+git_hash = 0
+
+[lints.config]
+warnings_as_errors = false
+
+# HEMTT's SQF analyzer doesn't know about our preprocessor macros
+# (REQUIRE / BO_LOG_* / SERVER_ONLY*), so it reports false-positive
+# "wrong arg count" errors on every macro invocation. Disable the
+# affected lints — they're checking arity of things that aren't
+# actually function calls.
+[lints.sqf.invalid_args]
+options.severity = "Warning"
+
+[lints.sqf.undefined_function]
+options.severity = "Warning"
+
+[lints.sqf.command_case]
+options.severity = "Warning"
+
+[lints.sqf.unparseable_syntax]
+options.severity = "Warning"
+
+# Macro-expansion false positives. REQUIRE(x isNotEqualTo y, ...)
+# expands to `if (!(x isNotEqualTo y))` and the linter flags the !
+# even though the user code looks clean. Same for PW3 — every macro
+# call has whitespace after commas for readability, which trips PW3.
+[lints.sqf.unneeded_not]
+options.severity = "Help"
+
+[lints.preprocessor.padded_arg]
+options.severity = "Help"

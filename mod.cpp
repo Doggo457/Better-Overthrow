@@ -1,0 +1,11 @@
+name = "Better Overthrow";
+picture = "logo_bo.paa";
+logo = "logo_bo.paa";
+logoOver = "logo_bo.paa";
+logoSmall = "logo_bo.paa";
+actionName = "Wiki";
+action = "https://overthrow.fandom.com/";
+description = "Better Overthrow -- standalone fork of Overthrow CE with banking, persistent garrisons, restricted Zeus for Generals, modded-item pricing fixes, and QOL improvements.";
+overview = "A fork of Overthrow's revolution simulator with persistence, banking, and Zeus high-command tools.";
+author = "Better Overthrow contributors";
+overviewPicture = "logo_bo.paa";

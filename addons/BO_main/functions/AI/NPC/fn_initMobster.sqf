@@ -1,0 +1,153 @@
+private _unit = _this;
+
+_unit setVariable ["mobster", true, false];
+
+private _firstname = selectRandom OT_firstNames_local;
+private _lastname = selectRandom OT_lastNames_local;
+private _fullname = [format ["%1 %2", _firstname, _lastname], _firstname, _lastname];
+[_unit, _fullname] remoteExecCall ["setName", 0, _unit];
+
+_unit addEventHandler [
+    "HandleDamage",
+    {
+        private _src = _this select 3;
+        if (captive _src) then {
+            if (!isNull objectParent _src || (_src call OT_fnc_unitSeenCRIM)) then {
+                _src setCaptive false;
+            };
+        };
+    }
+];
+
+[_unit, (selectRandom OT_faces_local)] remoteExecCall ["setFace", 0, _unit];
+[_unit, (selectRandom OT_voices_local)] remoteExecCall ["setSpeaker", 0, _unit];
+_unit forceAddUniform OT_clothes_mob;
+
+removeAllItems _unit;
+removeHeadgear _unit;
+removeAllWeapons _unit;
+removeVest _unit;
+removeAllAssignedItems _unit;
+
+_unit addWeaponGlobal "Laserdesignator_02_ghex_F";
+_unit addGoggles "G_Bandanna_beast";
+_unit addHeadgear "H_Booniehat_khk";
+
+_unit linkItem "ItemMap";
+_unit linkItem "ItemCompass";
+_unit addVest selectRandom (OT_allProtectiveVests);
+if (OT_hasTFAR) then {
+    _unit linkItem "tf_fadak";
+} else {
+    _unit linkItem "ItemRadio";
+};
+private _hour = date select 3;
+if (_hour < 8 || _hour > 15) then {
+    _unit linkItem "O_NVGoggles_ghex_F";
+};
+
+_unit linkItem "ACE_Altimeter";
+
+if ((random 100) < 15) then {
+    _unit addItem "OT_Ganja";
+    _unit addItem "OT_Ganja";
+};
+
+private _weapon = selectRandom (OT_CRIM_Weapons);
+
+_unit addWeaponGlobal _weapon;
+
+[_unit] call {
+    params ["_unit"];
+    if ((random 100) > 98) exitWith {
+        //This guy has a launcher
+        _unit addBackpack (selectRandom OT_allBackpacks);
+        private _launcher = OT_CRIM_Launchers select 0;
+        private _base = [_launcher] call BIS_fnc_baseWeapon;
+        private _magazine = selectRandom (getArray (configFile >> "CfgWeapons" >> _base >> "magazines"));
+        _unit addMagazine _magazine;
+        _unit addMagazine _magazine;
+        _unit addMagazine _magazine;
+        _unit addWeaponGlobal _launcher;
+    };
+    if ((random 100) > 85) exitWith {
+        //This is a medic
+        _unit addBackpack (selectRandom OT_allBackpacks);
+
+        for "_i" from 1 to 10 do { _unit addItemToBackpack "ACE_fieldDressing" };
+        for "_i" from 1 to 3 do { _unit addItemToBackpack "ACE_morphine" };
+        _unit addItemToBackpack "ACE_bloodIV";
+        _unit addItemToBackpack "ACE_epinephrine";
+    };
+    if ((random 100) > 95) exitWith {
+        //This is an engineer
+        _unit addBackpack (selectRandom OT_allBackpacks);
+        for "_i" from 1 to 2 do { _unit addItemToBackpack "DemoCharge_Remote_Mag" };
+        _unit addItemToBackpack "APERSBoundingMine_Range_Mag";
+        _unit addItemToBackpack "ClaymoreDirectionalMine_Remote_Mag";
+        _unit addItemToBackpack "IEDUrbanSmall_Remote_Mag";
+
+        _unit addItemToBackpack "ACE_DefusalKit";
+        _unit addItemToBackpack "ACE_M26_Clacker";
+        _unit addItemToBackpack "ACE_Clacker";
+        _unit addItemToBackpack "ACE_DeadManSwitch";
+
+        _unit addItemToBackpack "Toolkit";
+    };
+    if ((random 100) > 97) exitWith {
+        //This guy just has a shitload of weed
+        _unit addBackpack (selectRandom OT_allBackpacks);
+        for "_i" from 1 to round (random 30) do { _unit addItemToBackpack "OT_Ganja" };
+    };
+};
+
+private _base = [_weapon] call BIS_fnc_baseWeapon;
+private _magazine = selectRandom (getArray (configFile >> "CfgWeapons" >> _base >> "magazines"));
+_unit addMagazine _magazine;
+_unit addMagazine _magazine;
+_unit addMagazine _magazine;
+_unit addMagazine _magazine;
+_unit addMagazine _magazine;
+
+if ((random 100) > 80) then {
+    _unit addItem "SmokeShell";
+};
+
+if ((random 100) > 50) then {
+    _unit addItem "HandGrenade";
+} else {
+    _unit addItem "MiniGrenade";
+};
+
+if ((random 100) > 90) then {
+    _unit addItem "ACE_M84";
+};
+
+private _config = configFile >> "CfgWeapons" >> _weapon >> "WeaponSlotsInfo";
+private _numslots = count (_config);
+for "_i" from 0 to (_numslots - 1) do {
+    if (isClass (_config select _i)) then {
+        private _slot = configName (_config select _i);
+        private _com = _config >> _slot >> "compatibleItems";
+        private _items = [];
+        if (isClass (_com)) then {
+            for "_t" from 0 to (count (_com) - 1) do {
+                _items pushBack (configName (_com select _t));
+            };
+        } else {
+            _items = getArray (_com);
+        };
+        if (_items isNotEqualTo []) then {
+            private _cls = selectRandom _items;
+            _unit addPrimaryWeaponItem _cls;
+        };
+    };
+};
+
+_weapon = selectRandom OT_allHandguns;
+_unit addWeaponGlobal _weapon;
+_base = [_weapon] call BIS_fnc_baseWeapon;
+_magazine = (getArray (configFile >> "CfgWeapons" >> _base >> "magazines")) select 0;
+if !(isNil "_magazine") then {
+    _unit addItem _magazine;
+};

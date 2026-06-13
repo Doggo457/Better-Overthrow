@@ -1,0 +1,38 @@
+private _town = player call OT_fnc_nearestTown;
+private _standing = [_town] call OT_fnc_support;
+
+if (_standing < 10 && (player nearObjects [OT_refugeeCamp, 50]) isEqualTo []) exitWith {
+    "+10 Resistance Support required to recruit, or you must be within 50m of a refugee camp" call OT_fnc_notifyMinor;
+};
+
+if ((player nearEntities ["CAManBase", 50]) findIf { side _x isEqualTo blufor || side _x isEqualTo opfor } != -1) exitWith { "You cannot recruit with enemies nearby" call OT_fnc_notifyMinor };
+
+private _price = [_town, "CIV", _standing] call OT_fnc_getPrice;
+private _money = player getVariable ["money", 0];
+
+if (_money < _price) exitWith { "You cannot afford that" call OT_fnc_notifyMinor };
+// Route the debit through OT_fnc_money so the player gets the standard
+// "-$N: Recruit" notify and the audit log stays consistent with every
+// other money mutation. The raw setVariable left the "X has been
+// recruited" message at the bottom of this function as the only hint
+// that the debit happened -- no $-figure displayed. The redundant
+// playSound here was identical to what OT_fnc_money plays anyway.
+[-_price, "Recruit"] call OT_fnc_money;
+
+[_town, 1] call OT_fnc_support;
+
+private _civ = OT_interactingWith;
+[_civ, getPlayerUID player] call OT_fnc_setOwner;
+_civ removeAllEventHandlers "FiredNear";
+[_civ] joinSilent nil;
+[_civ] joinSilent (group player);
+_civ setCaptive true;
+_civ setSkill 0.2 + (random 0.3);
+[_civ] call OT_fnc_initRecruit;
+_civ setVariable ["OT_spawntrack", true, true];
+
+[player, format ["New Recruit: %1", name _civ], format ["Recruited: %1 for $%2", name _civ, _price]] call BIS_fnc_createLogRecord;
+format ["%1 has been recruited", name _civ] call OT_fnc_notifyMinor;
+
+_civ setBehaviour "SAFE";
+[_civ, ""] remoteExec ["switchMove", 0, false];

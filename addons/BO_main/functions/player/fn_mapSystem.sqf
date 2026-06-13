@@ -1,0 +1,252 @@
+addMissionEventHandler [
+    "Draw3D",
+    {
+        if !(OT_showPlayerMarkers) exitWith {};
+        {
+            if (_x isNotEqualTo player) then {
+                private _dis = round (_x distance player);
+                if (_dis < 250) then {
+                    private _t = "m";
+                    //if(_dis > 999) then {
+                    //	_dis = round(_dis / 1000);
+                    //	_t = "km";
+                    //};
+                    private _pos = _x modelToWorldVisual [0, 0, 0];
+                    if ((worldToScreen _pos) isEqualTo []) exitWith {};
+                    drawIcon3D ["a3\ui_f\data\map\groupicons\selector_selectable_ca.paa", [1, 1, 1, 0.3], _pos, 1, 1, 0, format ["%1 (%2%3)", name _x, _dis, _t], 0, 0.02, "TahomaB", "center", true];
+                };
+            };
+        } forEach (allPlayers - (entities "HeadlessClient_F"));
+    }
+];
+
+addMissionEventHandler [
+    "Draw3D",
+    {
+        if (!isNil "OT_missionMarker") then {
+            private _dis = round (OT_missionMarker distance player);
+            private _t = "m";
+            if (_dis > 999) then {
+                _dis = round (_dis / 1000);
+                _t = "km";
+            };
+            drawIcon3D ["a3\ui_f\data\map\markers\military\dot_ca.paa", [1, 1, 1, 1], OT_missionMarker, 1, 1, 0, format ["%1 (%2%3)", OT_missionMarkerText, _dis, _t], 0, 0.02, "TahomaB", "center", true];
+        };
+    }
+];
+
+if (!isNil "OT_OnDraw") then {
+    ((findDisplay 12) displayCtrl 51) ctrlRemoveEventHandler ["Draw", OT_OnDraw];
+};
+
+// Set-up shop markers
+[] spawn {
+    waitUntil { !(isNil "OT_townData") && !(isNil "OT_economyLoadDone") };
+    OT_allShopMarkers = [];
+    {
+        _x params ["", "_tname"];
+
+        // We need to wait for the server...
+        waitUntil {
+            !(isNil { server getVariable format ["activeshopsin%1", _tname] })
+                && {
+                    !(isNil { server getVariable format ["activehardwarein%1", _tname] })
+                        && !(isNil { server getVariable format ["activecarshopsin%1", _tname] })
+                        && !(isNil { server getVariable format ["activepiersin%1", _tname] });
+                };
+        };
+        //Shop Markers
+        {
+            _x params ["_pos", "_name"];
+            private _mrkName = format ["%1 %2", _pos select 0, _pos select 1];
+            private _mrk = createMarkerLocal [_mrkName, _pos];
+            _mrk setMarkerShapeLocal "ICON";
+            _mrk setMarkerTypeLocal format ["ot_Shop%1", _name];
+            _mrk setMarkerAlphaLocal 1;
+            OT_allShopMarkers pushBack _mrkName;
+        } forEach (server getVariable [format ["activeshopsin%1", _tname], []]);
+        //Hardware Store Markers
+        {
+            _x params ["_pos", "_name"];
+            private _mrkName = format ["%1 %2", _pos select 0, _pos select 1];
+            private _mrk = createMarkerLocal [_mrkName, _pos];
+            _mrk setMarkerShapeLocal "ICON";
+            _mrk setMarkerTypeLocal "ot_ShopHardware";
+            _mrk setMarkerAlphaLocal 1;
+            OT_allShopMarkers pushBack _mrkName;
+        } forEach (server getVariable [format ["activehardwarein%1", _tname], []]);
+        //Vehicle Store Markers
+        {
+            private _mrkName = format ["%1 %2", _x select 0, _x select 1];
+            private _mrk = createMarkerLocal [_mrkName, _x];
+            _mrk setMarkerShapeLocal "ICON";
+            _mrk setMarkerTypeLocal "ot_ShopVehicle";
+            _mrk setMarkerAlphaLocal 1;
+            OT_allShopMarkers pushBack _mrkName;
+        } forEach (server getVariable [format ["activecarshopsin%1", _tname], []]);
+        //Pier Store Markers
+        {
+            private _mrkName = format ["%1 %2", _x select 0, _x select 1];
+            private _mrk = createMarkerLocal [_mrkName, _x];
+            _mrk setMarkerShapeLocal "ICON";
+            _mrk setMarkerTypeLocal "ot_ShopPier";
+            _mrk setMarkerAlphaLocal 1;
+            OT_allShopMarkers pushBack _mrkName;
+        } forEach (server getVariable [format ["activepiersin%1", _tname], []]);
+    } forEach (OT_townData);
+};
+
+OT_OnDraw = ((findDisplay 12) displayCtrl 51) ctrlAddEventHandler ["Draw", OT_fnc_mapHandler];
+
+//Map caching
+OT_mapcache_properties = [];
+OT_mapcache_vehicles = [];
+OT_mapcache_radar = [];
+OT_mapcache_bodies = [];
+//3 second Cache
+[
+    {
+        if (!visibleMap) exitWith {};
+        private _properties = [];
+        private _vehs = [];
+        private _radar = [];
+        private _bodies = [];
+        //Properties cache
+        private _leased = player getVariable ["leased", []];
+        {
+            private _buildingPos = buildingpositions getVariable _x;
+            if !(isNil "_buildingPos") then {
+                _properties pushBack [
+                    "\A3\ui_f\data\map\mapcontrol\Tourism_CA.paa",
+                    [1, 1, 1, [1, 0.3] select (_x in _leased)],
+                    _buildingPos,
+                    0.3,
+                    0.3,
+                    0
+                ];
+            };
+        } forEach (player getVariable ["owned", []]);
+
+        //Vehicle cache
+        {
+            //Owned vehicles
+            if (((typeOf _x == OT_item_CargoContainer) || (_x isKindOf "Ship") || (_x isKindOf "Air") || (_x isKindOf "Car")) && { crew _x isEqualTo [] } && { (_x call OT_fnc_hasOwner) }) then {
+                _vehs pushBack [
+                    getText (configOf _x >> "icon"),
+                    [1, 1, 1, 1],
+                    getPosASL _x,
+                    0.4,
+                    0.4,
+                    getDir _x
+                ];
+            };
+            //All resistance static weapons
+            if ((_x isKindOf "StaticWeapon") && { (isNull attachedTo _x) } && { (alive _x) }) then {
+                if (side _x isEqualTo civilian || side _x isEqualTo independent || captive _x) then {
+                    private _col = [0.5, 0.5, 0.5, 1];
+                    if (!(isNull gunner _x) && { (alive gunner _x) }) then { _col = [0, 0.5, 0, 1] };
+                    private _i = "\A3\ui_f\data\map\markers\nato\o_art.paa";
+                    if (_x isKindOf "StaticMortar") then { _i = "\A3\ui_f\data\map\markers\nato\o_mortar.paa" };
+                    if !(someAmmo _x) then { _col set [3, 0.4] };
+                    _vehs pushBack [
+                        _i,
+                        _col,
+                        getPosASL _x,
+                        30,
+                        30,
+                        0
+                    ];
+                };
+            };
+            //Radar hits
+            if ((_x isKindOf "Air") && { (alive _x) } && ((side _x) isEqualTo blufor) && (_x call OT_fnc_isRadarInRange) && { crew _x isNotEqualTo [] }) then {
+                _radar pushBack _x;
+            };
+        } forEach entities [["Car", "Air", "Ship", "StaticWeapon", OT_item_CargoContainer], ["Parachute"], false, false];
+        //Corpse cache
+        {
+            if (typeOf _x != "B_UAV_AI") then {
+                private _p = getPosASL _x;
+                _bodies pushBack [
+                    "\overthrow_main\ui\markers\death.paa",
+                    [1, 1, 1, 0.5],
+                    _p,
+                    0.2,
+                    0.2,
+                    0
+                ];
+            };
+        } forEach (allDeadMen);
+
+        //Cache Gun Dealer map icons
+        {
+            _x params ["", "_tname"];
+            private _townPos = server getVariable format ["gundealer%1", _tname];
+            if !(isNil "_townPos") then {
+                OT_mapcache_factions pushBackUnique [
+                    OT_flagImage,
+                    [1, 1, 1, 1],
+                    _townPos,
+                    0.3,
+                    0.3,
+                    0
+                ];
+            };
+        } forEach (OT_townData);
+
+        OT_mapcache_properties = _properties;
+        OT_mapcache_vehicles = _vehs;
+        OT_mapcache_radar = _radar;
+        OT_mapcache_bodies = _bodies;
+    },
+    3,
+    []
+] call CBA_fnc_addPerFrameHandler;
+
+//Map Icon Caching
+[] spawn {
+    waitUntil { !(isNil "OT_townData") && !(isNil "OT_economyLoadDone") };
+
+    OT_mapcache_factions = [];
+    {
+        _x params ["_cls", "", "_side", "_flag"];
+        if (_side isNotEqualTo 1) then {
+            private _factionPos = server getVariable format ["factionrep%1", _cls];
+            if !(isNil "_factionPos") then {
+                OT_mapcache_factions pushBack [
+                    _flag,
+                    [1, 1, 1, 1],
+                    _factionPos,
+                    0.6,
+                    0.5,
+                    0
+                ];
+            };
+        };
+    } forEach (OT_allFactions);
+};
+
+// Wire the Draw EH onto the GPS once, then self-remove the PFH so we
+// don't thrash the EH every 0.5s for the whole session. Mirrors the
+// OT_OnDraw one-shot pattern at line 99 in this file.
+[
+    {
+        params ["", "_id"];
+        disableSerialization;
+        private _gps = controlNull;
+        {
+            if !(isNil { _x displayCtrl 101 }) exitWith {
+                _gps = _x displayCtrl 101;
+            };
+        } forEach (uiNamespace getVariable "IGUI_Displays");
+        if (!isNull _gps) exitWith {
+            if (!isNil "OT_GPSOnDraw") then {
+                _gps ctrlRemoveEventHandler ['Draw', OT_GPSOnDraw];
+            };
+            OT_GPSOnDraw = _gps ctrlAddEventHandler ['Draw', OT_fnc_mapHandler];
+            [_id] call CBA_fnc_removePerFrameHandler;
+        };
+    },
+    0.5,
+    []
+] call CBA_fnc_addPerFrameHandler;

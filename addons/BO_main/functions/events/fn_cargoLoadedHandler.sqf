@@ -1,0 +1,11 @@
+params ["_item", "_veh"];
+private _pos = getPosATL _veh;
+
+if (_item in OT_illegalItems) then {
+    {
+        if (isPlayer _x && { _x call OT_fnc_unitSeenNATO }) then {
+            _x setCaptive false;
+            [_x] call OT_fnc_revealToNATO;
+        };
+    } forEach (_pos nearEntities ["CAManBase", 30]);
+};

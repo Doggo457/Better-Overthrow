@@ -1,0 +1,144 @@
+params ["_frompos", "_ao", "_attackpos", ["_delay", 0]];
+if (_delay > 0) then { sleep _delay };
+private _vehtype = selectRandom OT_NATO_Vehicles_APC;
+private _squadtype = selectRandom OT_NATO_GroundForces;
+
+// Spawn a group to be seated in a transport vehicle
+private _group1 = [_frompos, blufor, _squadtype] call BIS_fnc_spawnGroup;
+_group1 deleteGroupWhenEmpty true;
+
+sleep 0.5;
+private _allunits = [];
+private _veh = false;
+
+//Transport
+private _tgroup = createGroup blufor;
+
+private _dir = _frompos getDir _ao;
+private _pos = _frompos findEmptyPosition [10, 100, _vehtype];
+if (_pos isEqualTo []) then { _pos = _frompos findEmptyPosition [0, 100, _vehtype] };
+
+_veh = _vehtype createVehicle _pos;
+_veh setVariable ["garrison", "HQ", false];
+clearWeaponCargoGlobal _veh;
+clearMagazineCargoGlobal _veh;
+clearItemCargoGlobal _veh;
+clearBackpackCargoGlobal _veh;
+
+_veh setDir (_dir);
+_tgroup addVehicle _veh;
+createVehicleCrew _veh;
+{
+    [_x] joinSilent _tgroup;
+    _x setVariable ["garrison", "HQ", false];
+    _x setVariable ["NOAI", true, false];
+} forEach (crew _veh);
+_allunits = (units _tgroup);
+sleep 1;
+
+{
+    if (_tgroup isEqualType grpNull) then {
+        _x moveInCargo _veh;
+    };
+    [_x] joinSilent _group1;
+    _allunits pushBack _x;
+    _x setVariable ["garrison", "HQ", false];
+    _x setVariable ["VCOM_NOPATHING_Unit", true, false];
+} forEach (units _group1);
+
+{
+    _x addCuratorEditableObjects [[_veh] + (units _group1), true];
+} forEach allCurators;
+
+_tgroup deleteGroupWhenEmpty true;
+
+spawner setVariable ["NATOattackforce", (spawner getVariable ["NATOattackforce", []]) + [_group1], false];
+
+sleep 15;
+
+if (_tgroup isEqualType grpNull) then {
+    _veh setDamage 0;
+    _dir = _attackpos getDir _frompos;
+    private _roads = _ao nearRoads 150;
+    private _dropos = _ao;
+    if (_roads isNotEqualTo []) then {
+        _dropos = ASLToAGL (getPosASL (_roads select -1));
+    };
+    private _move = _tgroup addWaypoint [_dropos, 0];
+    _move setWaypointBehaviour "SAFE";
+    _move setWaypointType "MOVE";
+
+    _move = _tgroup addWaypoint [_dropos, 0];
+    _move setWaypointTimeout [30, 30, 30];
+    _move setWaypointType "TR UNLOAD";
+    _move setWaypointCompletionRadius 50;
+
+    private _wp = _tgroup addWaypoint [_frompos, 0];
+    _wp setWaypointType "MOVE";
+    _wp setWaypointBehaviour "CARELESS";
+    _wp setWaypointCompletionRadius 25;
+
+    _wp = _tgroup addWaypoint [_frompos, 0];
+    _wp setWaypointType "SCRIPTED";
+    _wp setWaypointCompletionRadius 25;
+    _wp setWaypointStatements ["true", "[vehicle this] call OT_fnc_cleanup"];
+};
+sleep 10;
+private _wp = _group1 addWaypoint [_attackpos, 100];
+_wp setWaypointType "SAD";
+_wp setWaypointBehaviour "COMBAT";
+_wp setWaypointSpeed "FULL";
+
+if (_tgroup isEqualType grpNull) then {
+
+    [_veh, _tgroup, _frompos] spawn {
+        //Ejects crew from vehicles when they take damage or stay relatively still for too long (you know, like when they ram a tree for 4 hours)
+        params ["_veh", "_tgroup", "_frompos"];
+        private _done = false;
+        private _stillfor = 0;
+        private _lastpos = getPos _veh;
+        while {
+            sleep 10;
+            !_done;
+        } do {
+            if (isNull _veh) exitWith {};
+            if (isNull _tgroup) exitWith {};
+            if (!alive _veh) exitWith {};
+            private _eject = false;
+            if ((damage _veh) > 0 && ((getPos _veh) select 2) < 2) then {
+                //Vehicle damaged (and on the ground)
+                _eject = true;
+            };
+            if (_veh distance _lastpos < 0.5) then {
+                _stillfor = _stillfor + 10;
+                if (_stillfor > 60) then {
+                    //what are you doing? gtfo
+                    _eject = true;
+                };
+            } else {
+                _stillfor = 0;
+            };
+            if (_eject) then {
+                while { (waypoints _tgroup) isNotEqualTo [] } do {
+                    deleteWaypoint ((waypoints _tgroup) select 0);
+                };
+                commandStop (driver _veh);
+                {
+                    unassignVehicle _x;
+                    commandGetOut _x;
+                } forEach ((crew _veh) - (units _tgroup));
+                _done = true;
+
+                private _wp = _tgroup addWaypoint [_frompos, 0];
+                _wp setWaypointType "MOVE";
+                _wp setWaypointBehaviour "CARELESS";
+                _wp setWaypointCompletionRadius 50;
+
+                _wp = _tgroup addWaypoint [_frompos, 0];
+                _wp setWaypointType "SCRIPTED";
+                _wp setWaypointCompletionRadius 50;
+                _wp setWaypointStatements ["true", "[vehicle this] call OT_fnc_cleanup"];
+            };
+        };
+    };
+};
