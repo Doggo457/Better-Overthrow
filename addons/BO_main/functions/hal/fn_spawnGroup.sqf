@@ -38,9 +38,13 @@ if (_mode isEqualTo "ground" && {_vehClass isNotEqualTo ""} && {!_canDrive}) the
 };
 
 // ---- infantry -------------------------------------------------------
+// When a vehicle owns _spawnPos the dismounts are moveInCargo'd anyway, so
+// spawn them clear of the vehicle footprint -- never under a vehicle that's
+// about to drop in from altitude.
+private _infBasePos = if (_vehClass isNotEqualTo "" && {_mode isNotEqualTo "none"}) then { _spawnPos getPos [22, random 360] } else { _spawnPos };
 private _grp = createGroup [west, true];
 {
-    private _u = _grp createUnit [_x, _spawnPos, [], 6, "FORM"];
+    private _u = _grp createUnit [_x, _infBasePos, [], 8, "FORM"];
     if (!isNull _u) then {
         _u setSkill (missionNamespace getVariable ["BO_HAL_skillBase", 0.55]);
         _u setVariable ["BO_HAL_unit", true, false];
@@ -80,6 +84,17 @@ if (_vehClass isNotEqualTo "" && {_mode isNotEqualTo "none"}) then {
     _veh setVariable ["BO_HAL_unit", true, false];
 
     createVehicleCrew _veh;
+
+    // Spawn-settle invulnerability: ground vehicles dropped from altitude
+    // can jostle on landing -- especially when several spawn near each other
+    // -- and the physics solver detonates them. Shield the vehicle + its
+    // crew for a few seconds, then restore so the player can still kill it.
+    if (_mode isNotEqualTo "air") then {
+        private _settle = [_veh] + (crew _veh);
+        { _x allowDamage false } forEach _settle;
+        [{ { if (!isNull _x) then { _x allowDamage true } } forEach (_this select 0) }, [_settle], 6] call CBA_fnc_waitAndExecute;
+    };
+
     _crewGrp = group (effectiveCommander _veh);
     if (isNull _crewGrp && {!isNull (driver _veh)}) then { _crewGrp = group (driver _veh) };
     if (!isNull _crewGrp) then {

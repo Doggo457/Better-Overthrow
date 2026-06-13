@@ -48,6 +48,11 @@ if (_tanks isNotEqualTo []) then {
     _tank allowCrewInImmobile false;
     _tank setVariable ["BO_HAL_unit", true, false];
     createVehicleCrew _tank;
+    // Spawn-settle invulnerability (see fn_spawnGroup) -- the tank drops
+    // from altitude next to the APC and must not jostle-explode on landing.
+    private _settleT = [_tank] + (crew _tank);
+    { _x allowDamage false } forEach _settleT;
+    [{ { if (!isNull _x) then { _x allowDamage true } } forEach (_this select 0) }, [_settleT], 6] call CBA_fnc_waitAndExecute;
     _tankCrew = group (effectiveCommander _tank);
     if (isNull _tankCrew && {!isNull driver _tank}) then { _tankCrew = group (driver _tank) };
     if (!isNull _tankCrew) then {

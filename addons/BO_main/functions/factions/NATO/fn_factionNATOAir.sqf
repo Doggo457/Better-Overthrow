@@ -125,6 +125,27 @@ if (_nonUAVplanes isNotEqualTo []) then {
     BO_LOG_WARN("factions", "factionNATOAir: no non-UAV Plane for JetGarrison -- per-map default retained");
 };
 
+// --- OT_NATO_Vehicles_AirWingedSupport (scramble / CAS strike jet) ---
+// Consumed by fn_NATOScrambleJet.sqf + fn_reclaimAssault.sqf. Left unmined it
+// scrambles a vanilla B_Plane_Fighter_01_F on RHS/CUP games. Prefer armed
+// fighter/CAS-named planes from the faction's plane pool; keep per-map
+// default only when the faction genuinely fields no fixed-wing.
+if (_nonUAVplanes isNotEqualTo []) then {
+    private _strike = _nonUAVplanes select {
+        private _l = toLower _x;
+        ("fighter" in _l) || ("cas" in _l) || ("f18" in _l) || ("f_18" in _l) || ("a10" in _l)
+            || ("a_10" in _l) || ("av8" in _l) || ("harrier" in _l) || ("su25" in _l) || ("su_25" in _l)
+            || ("attack" in _l) || ("jet" in _l)
+    };
+    private _wing = if (_strike isNotEqualTo []) then { _strike } else { _nonUAVplanes };
+    OT_NATO_Vehicles_AirWingedSupport = _wing;
+    publicVariable "OT_NATO_Vehicles_AirWingedSupport";
+    private _msg = format ["factionNATOAir: AirWingedSupport -> %1 entries", count _wing];
+    BO_LOG_INFO("factions", _msg);
+} else {
+    BO_LOG_WARN("factions", "factionNATOAir: no fixed-wing for AirWingedSupport -- per-map default retained");
+};
+
 // --- OT_NATO_Vehicles_ReconDrone (UAV) ---
 private _uavs = [_activeFac, "UAV"] call _fnMineKind;
 if (_uavs isEqualTo []) then { _uavs = [_fbFac, "UAV"] call _fnMineKind; };
@@ -135,6 +156,17 @@ if (_uavs isNotEqualTo []) then {
     publicVariable "OT_NATO_Vehicles_ReconDrone";
     private _msg = format ["factionNATOAir: ReconDrone -> %1", _pick];
     BO_LOG_INFO("factions", _msg);
+
+    // OT_NATO_Vehicles_CASDrone -- the armed UAV. Prefer a CAS/armed-named
+    // drone; only if the faction has none does the package stay on the
+    // vanilla default (and it is eligibility-gated anyway).
+    private _casUavs = _uavs select { private _l = toLower _x; ("cas" in _l) || ("armed" in _l) || ("dynamicloadout" in _l) };
+    if (_casUavs isNotEqualTo []) then {
+        OT_NATO_Vehicles_CASDrone = selectRandom _casUavs;
+        publicVariable "OT_NATO_Vehicles_CASDrone";
+        private _cmsg = format ["factionNATOAir: CASDrone -> %1", OT_NATO_Vehicles_CASDrone];
+        BO_LOG_INFO("factions", _cmsg);
+    };
 } else {
     BO_LOG_WARN("factions", "factionNATOAir: no UAV for faction -- per-map default retained");
 };

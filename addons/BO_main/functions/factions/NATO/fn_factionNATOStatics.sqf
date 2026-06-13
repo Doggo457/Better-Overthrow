@@ -76,3 +76,18 @@ if (_aas isNotEqualTo []) then {
     private _msg = format ["factionNATOStatics: no static AA for %1/%2 -- per-map default retained", _activeFac, _fbFac];
     BO_LOG_WARN("factions", _msg);
 };
+
+// --- OT_NATO_Mortar ---
+// Consumed by fn_NATOupgradeFOB.sqf when a FOB builds a mortar pit; left
+// unmined it spawns a vanilla B_Mortar_01_F + vanilla crew on RHS/CUP games.
+private _mortars = [_activeFac, "StaticMortar"] call _fnMine;
+if (_mortars isEqualTo []) then { _mortars = [_fbFac, "StaticMortar"] call _fnMine; };
+if (_mortars isNotEqualTo []) then {
+    OT_NATO_Mortar = selectRandom _mortars;
+    publicVariable "OT_NATO_Mortar";
+    private _msg = format ["factionNATOStatics: Mortar -> %1 (pool=%2)", OT_NATO_Mortar, count _mortars];
+    BO_LOG_INFO("factions", _msg);
+} else {
+    private _msg = format ["factionNATOStatics: no static mortar for %1/%2 -- per-map default retained", _activeFac, _fbFac];
+    BO_LOG_WARN("factions", _msg);
+};

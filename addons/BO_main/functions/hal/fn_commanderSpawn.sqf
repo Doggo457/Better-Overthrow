@@ -96,13 +96,19 @@ if (_wl >= 6) then { _vehPools pushBack (missionNamespace getVariable ["OT_NATO_
     private _pl = _x;
     if (_pl isNotEqualTo []) then {
         private _cls = selectRandom _pl;
-        private _sp = _pos findEmptyPosition [15, 120, _cls];
-        if (_sp isEqualTo []) then { _sp = _pos getPos [35, random 360] };
+        // Ledger-aware placement so the 2-3 base vehicles (plus any ops
+        // falling in the same tick) don't resolve to the same slot and
+        // detonate on landing.
+        private _sp = ([_pos, _pos, _cls] call BO_HAL_fnc_spawnSafely) select 0;
         private _v = createVehicle [_cls, [0, 0, 800 + random 200], [], 0, "CAN_COLLIDE"];
         _v setDir (random 360);
         _v setPosATL _sp;
         _v allowCrewInImmobile false;
         createVehicleCrew _v;
+        // Spawn-settle invulnerability (see fn_spawnGroup).
+        private _settle = [_v] + (crew _v);
+        { _x allowDamage false } forEach _settle;
+        [{ { if (!isNull _x) then { _x allowDamage true } } forEach (_this select 0) }, [_settle], 6] call CBA_fnc_waitAndExecute;
         [_v] call _mark;
         { [_x] call _mark } forEach (crew _v);
         private _cg = group ((crew _v) param [0, objNull]);

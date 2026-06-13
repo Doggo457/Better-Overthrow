@@ -68,8 +68,12 @@ private _idxHeavyAT = _men findIf {
         || ("_at_" in _l) || (("titan" in _l) && {!("aa" in _l)})
 };
 
-private _atLight = if (_idxLAT     >= 0) then { _men select _idxLAT     } else { _tlFallback };
-private _atHeavy = if (_idxHeavyAT >= 0) then { _men select _idxHeavyAT } else { _atLight };
+// Heavy resolves first so light can fall back to it: a faction with only a
+// heavy AT (e.g. RHS USMC has riflemanat but no separate LAT) should field
+// that AT rifleman for both roles, NOT a vanilla leader. Only when neither
+// AT class exists do we fall back to the (now faction-correct) leader.
+private _atHeavy = if (_idxHeavyAT >= 0) then { _men select _idxHeavyAT } else { _tlFallback };
+private _atLight = if (_idxLAT     >= 0) then { _men select _idxLAT     } else { _atHeavy };
 
 // SF roles -- RHS (_sf / _delta / _recon), CUP (_sf / _recon / _frogman),
 // UK3CB (_sas / _recon), vanilla (_ctrg).

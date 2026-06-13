@@ -118,6 +118,37 @@ OT_NATO_Units_CTRGSupport = [];
     };
 } forEach (format ["(getNumber (_x >> 'scope') == 2) && (getText (_x >> 'faction') == '%1') && (configName _x) isKindOf 'SoldierWB'", OT_faction_NATO] configClasses (configFile >> "CfgVehicles"));
 
+// BO multi-nation: the loop above only assigns TeamLeader/SquadLeader when
+// a unit declares the vanilla icon="iconManLeader", which RHS / CUP / UK3CB
+// units do NOT set. Left unfixed, every group is led by the per-map vanilla
+// B_Soldier_TL_F among faction riflemen -- the most visible "wrong faction"
+// leak. If the leader scalar isn't actually from the active faction, derive
+// it from the mined faction pool: prefer a leader/NCO-named class, else the
+// most senior rifleman tier available.
+if ((getText (configFile >> "CfgVehicles" >> OT_NATO_Unit_TeamLeader >> "faction")) isNotEqualTo OT_faction_NATO) then {
+    private _leadPool = OT_NATO_Units_LevelOne + OT_NATO_Units_LevelTwo;
+    private _idxLead = _leadPool findIf {
+        private _l = toLower _x;
+        ("squadleader" in _l) || ("teamleader" in _l) || ("sergeant" in _l)
+            || ("_sl_" in _l) || ("_tl_" in _l) || ("_sl" in _l) || ("_tl" in _l) || ("leader" in _l)
+    };
+    private _lead = OT_NATO_Unit_TeamLeader;
+    if (_idxLead >= 0) then {
+        _lead = _leadPool select _idxLead;
+    } else {
+        if ((count OT_NATO_Units_LevelTwo) > 0) then {
+            _lead = OT_NATO_Units_LevelTwo select 0;
+        } else {
+            if ((count OT_NATO_Units_LevelOne) > 0) then {
+                _lead = OT_NATO_Units_LevelOne select 0;
+            };
+        };
+    };
+    OT_NATO_Unit_TeamLeader = _lead;
+    OT_NATO_Unit_SquadLeader = _lead;
+    diag_log format ["[BO][INFO][factions] initNATO: leader re-mined to %1 (faction %2 has no iconManLeader unit)", _lead, OT_faction_NATO];
+};
+
 //Generate and cache gendarm loadouts
 private _loadout = getUnitLoadout OT_NATO_Unit_Police;
 private _loadouts = [];
