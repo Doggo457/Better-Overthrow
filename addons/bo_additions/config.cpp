@@ -19,8 +19,8 @@ class CfgPatches {
             "cba_main",
             "ace_main"
         };
-        version = "0.1.0.0";
-        versionStr = "0.1.0.0";
+        version = "1.0.0.0";
+        versionStr = "1.0.0.0";
     };
 };
 
